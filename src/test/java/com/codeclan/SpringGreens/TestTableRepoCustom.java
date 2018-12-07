@@ -13,8 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -54,10 +56,12 @@ public class TestTableRepoCustom {
 
     @Test
     public void canGetTable__NoBookings() {
+        List<Table> allTables = tableRepository.findAll();
         GregorianCalendar cal = new GregorianCalendar(2018, Calendar.DECEMBER, 25, 16, 0, 0);
-        Table table = tableRepository.getFirstTableAtTime(cal);
+        ArrayList<Long> ids = tableRepository.getExcludedTableIds(cal);
+        Table foundTable = tableRepository.getFirstTableNotInArrayList(ids);
 
-        assertEquals(1, table.getTableNumber());
+        assertEquals(1, foundTable.getTableNumber());
     }
 
     @Test
@@ -70,7 +74,8 @@ public class TestTableRepoCustom {
         Booking booking = new Booking(cal, customer, table1);
         bookingRepository.save(booking);
 
-        Table foundTable = tableRepository.getFirstTableAtTime(cal);
+        ArrayList<Long> ids = tableRepository.getExcludedTableIds(cal);
+        Table foundTable = tableRepository.getFirstTableNotInArrayList(ids);
         assertEquals(2, foundTable.getTableNumber());
     }
 
@@ -90,6 +95,9 @@ public class TestTableRepoCustom {
         Booking booking3 = new Booking(cal, customer, table3);
         bookingRepository.save(booking3);
 
-        assertNull(tableRepository.getFirstTableAtTime(cal));
+        ArrayList<Long> ids = tableRepository.getExcludedTableIds(cal);
+        Table table = tableRepository.getFirstTableNotInArrayList(ids);
+
+        assertNull(table);
     }
 }

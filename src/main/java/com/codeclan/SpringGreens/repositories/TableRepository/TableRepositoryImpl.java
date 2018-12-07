@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
+import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.List;
 
@@ -17,41 +18,60 @@ public class TableRepositoryImpl implements TableRepositoryCustom {
     @Autowired
     EntityManager entityManager;
 
-    @Override
+    @Autowired
+    TableRepository tableRepository;
+
     @Transactional
-    public Table getFirstTableAtTime(GregorianCalendar cal) {
+    @Override
+    public ArrayList<Long> getExcludedTableIds(GregorianCalendar cal) {
         Session session = entityManager.unwrap(Session.class);
-        Table table = null;
+        List<Booking> bookingsPerDate = null;
+        ArrayList<Long> ids = null;
 
         try {
-            Criteria cr = session.createCriteria(Table.class);
+            Criteria cr = session.createCriteria(Booking.class);
+            cr.add(Restrictions.eq("datetime", cal));
 
-            List<Table> tables = cr.list();
+            bookingsPerDate = cr.list();
 
-            for(Table singleTable: tables){
-                Session newSession = entityManager.unwrap(Session.class);
+            ids = new ArrayList<>();
 
-                Criteria bookingCr = newSession.createCriteria(Booking.class);
-
-                bookingCr.add(Restrictions.eq("table", singleTable));
-                bookingCr.add(Restrictions.eq("datetime", cal));
-
-                List<Booking> bookingResults = bookingCr.list();
-                if(bookingResults.size() == 0){
-                    table = singleTable;
-                    break;
-                }
-
-                newSession.close();
+            for(Booking booking: bookingsPerDate){
+                ids.add(booking.getTable().getId());
             }
 
         } catch (HibernateException e) {
             e.printStackTrace();
         } finally {
-            session.close();
+//            session.close();
         }
 
-        return table;
+        return ids;
+    }
 
+    @Transactional
+    @Override
+    public Table getFirstTableNotInArrayList(ArrayList<Long> ids){
+        Session session = entityManager.unwrap(Session.class);
+        List<Table> results = null;
+
+        try {
+            Criteria cr = session.createCriteria(Table.class);
+            if(ids != null && ids.size() > 0){
+                cr.add(Restrictions.not(Restrictions.in("id", ids)));
+            }
+
+            results = cr.list();
+        } catch (HibernateException e) {
+            e.printStackTrace();
+        } finally {
+//            session.close();
+        }
+
+        if(results.size() > 0){
+            return results.get(0);
+        }
+
+        return null;
     }
 }

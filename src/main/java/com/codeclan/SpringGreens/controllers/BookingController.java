@@ -50,7 +50,8 @@ public class BookingController {
         cal.setTime(date);
 
         // Find first table
-        Table table = tableRepository.getFirstTableAtTime(cal);
+        ArrayList<Long> ids = tableRepository.getExcludedTableIds(cal);
+        Table table = tableRepository.getFirstTableNotInArrayList(ids);
 
         if(table != null && optionalCustomer != null){
             Customer customer = optionalCustomer.get();
